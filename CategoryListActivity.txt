@@ -1,0 +1,44 @@
+import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
+import android.os.Bundle
+import android.widget.ListView
+import android.widget.ArrayAdapter
+import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.util.Log
+class CategoryListActivity : AppCompatActivity() {
+
+    private lateinit var productListView: ListView
+    private lateinit var productDbHelper: ProductDatabaseHelper
+    private lateinit var products: List<Product>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_category_list)
+
+        productListView = findViewById(R.id.productListView)
+        productDbHelper = ProductDatabaseHelper(this)
+
+        // カテゴリIDをIntentから取得
+        val categoryId = intent.getLongExtra("categoryId", -1L).toInt() // LongからIntにキャスト
+
+        // カテゴリIDが有効かチェック
+        if (categoryId != -1) { // Int型でチェック
+            // 非同期で商品の一覧を取得
+            CoroutineScope(Dispatchers.IO).launch {
+                products = productDbHelper.getProductsByCategory(categoryId)
+                withContext(Dispatchers.Main) {
+                    // 商品名のリストを表示
+                    val productNames = products.map { it.name }
+                    val adapter = ArrayAdapter(this@CategoryListActivity, android.R.layout.simple_list_item_1, productNames)
+                    productListView.adapter = adapter
+                }
+            }
+        } else {
+            Toast.makeText(this, "無効なカテゴリID", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
